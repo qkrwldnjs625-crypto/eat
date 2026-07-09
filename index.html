@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>점심 추천 챗봇</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Pretendard", "Noto Sans KR", Arial, sans-serif;
+      background: #f5f5f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 480px;
+      height: 100vh;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .chat-header {
+      padding: 18px;
+      background: #ffb347;
+      color: #222;
+      text-align: center;
+      font-weight: 800;
+      font-size: 20px;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 12px 14px;
+      border-radius: 18px;
+      line-height: 1.5;
+      font-size: 15px;
+      white-space: pre-line;
+    }
+
+    .bot {
+      align-self: flex-start;
+      background: #eeeeee;
+      color: #222;
+      border-bottom-left-radius: 4px;
+    }
+
+    .user {
+      align-self: flex-end;
+      background: #ffcf7a;
+      color: #222;
+      border-bottom-right-radius: 4px;
+    }
+
+    .quick-buttons {
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px;
+      overflow-x: auto;
+      border-top: 1px solid #eee;
+    }
+
+    .quick-buttons button {
+      border: none;
+      background: #fff3dd;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 14px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .quick-buttons button:hover {
+      background: #ffe0a8;
+    }
+
+    .chat-input-area {
+      display: flex;
+      gap: 8px;
+      padding: 12px;
+      border-top: 1px solid #ddd;
+      background: #fff;
+    }
+
+    #userInput {
+      flex: 1;
+      padding: 13px;
+      border: 1px solid #ccc;
+      border-radius: 12px;
+      font-size: 15px;
+      outline: none;
+    }
+
+    #sendBtn {
+      padding: 0 18px;
+      border: none;
+      border-radius: 12px;
+      background: #ffb347;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    #sendBtn:hover {
+      background: #ffa726;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        align-items: stretch;
+      }
+
+      .chat-container {
+        max-width: none;
+        height: 100dvh;
+        box-shadow: none;
+      }
+
+      .chat-header {
+        font-size: 18px;
+        padding: 16px;
+      }
+
+      .message {
+        font-size: 14px;
+      }
+
+      #userInput {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="chat-container">
+    <div class="chat-header">🍱 점심 추천 챗봇</div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="message bot">
+안녕하세요!  
+“점심 때 뭐 먹지?”라고 물어보면 한식, 중식, 일식 메뉴를 추천해드릴게요.
+
+예시:
+- 점심 때 뭐 먹지?
+- 한식 추천해줘
+- 중식 먹고 싶어
+- 일식 메뉴 알려줘
+      </div>
+    </div>
+
+    <div class="quick-buttons">
+      <button onclick="quickAsk('점심 때 뭐 먹지?')">전체 추천</button>
+      <button onclick="quickAsk('한식 추천해줘')">한식</button>
+      <button onclick="quickAsk('중식 추천해줘')">중식</button>
+      <button onclick="quickAsk('일식 추천해줘')">일식</button>
+      <button onclick="quickAsk('가볍게 먹을 거 추천해줘')">가볍게</button>
+    </div>
+
+    <div class="chat-input-area">
+      <input
+        type="text"
+        id="userInput"
+        placeholder="메시지를 입력하세요"
+        autocomplete="off"
+      />
+      <button id="sendBtn">전송</button>
+    </div>
+  </div>
+
+  <script>
+    const menus = {
+      korean: [
+        "김치찌개", "된장찌개", "순두부찌개", "부대찌개", "제육볶음",
+        "불고기", "비빔밥", "돌솥비빔밥", "김밥", "떡볶이",
+        "칼국수", "수제비", "냉면", "콩나물국밥", "돼지국밥",
+        "삼계탕", "갈비탕", "설렁탕", "보쌈", "감자탕"
+      ],
+      chinese: [
+        "짜장면", "짬뽕", "볶음밥", "탕수육", "마파두부덮밥",
+        "고추잡채밥", "잡채밥", "울면", "간짜장", "차돌짬뽕",
+        "깐풍기", "유린기", "마라샹궈", "마라탕", "양장피"
+      ],
+      japanese: [
+        "돈카츠", "치즈카츠", "규동", "가츠동", "오야코동",
+        "라멘", "우동", "소바", "초밥", "연어덮밥",
+        "카레라이스", "텐동", "타코야키", "야키소바", "오므라이스"
+      ]
+    };
+
+    const lightMenus = [
+      "김밥", "우동", "소바", "초밥", "연어덮밥",
+      "비빔밥", "콩나물국밥", "오므라이스", "규동", "볶음밥"
+    ];
+
+    const chatMessages = document.getElementById("chatMessages");
+    const userInput = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+
+    function addMessage(text, sender) {
+      const message = document.createElement("div");
+      message.classList.add("message", sender);
+      message.textContent = text;
+      chatMessages.appendChild(message);
+      chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function getRandomItems(array, count) {
+      const shuffled = [...array].sort(() => Math.random() - 0.5);
+      return shuffled.slice(0, count);
+    }
+
+    function makeRecommendation(categoryName, menuArray) {
+      const picks = getRandomItems(menuArray, 5);
+
+      return `${categoryName} 메뉴로는 이런 음식이 좋아요!\n\n` +
+        picks.map((menu, index) => `${index + 1}. ${menu}`).join("\n") +
+        `\n\n마음에 드는 메뉴가 없으면 다시 물어봐 주세요.`;
+    }
+
+    function getBotResponse(input) {
+      const text = input.replace(/\s/g, "").toLowerCase();
+
+      if (
+        text.includes("한식") ||
+        text.includes("한국") ||
+        text.includes("국밥") ||
+        text.includes("찌개")
+      ) {
+        return makeRecommendation("한식", menus.korean);
+      }
+
+      if (
+        text.includes("중식") ||
+        text.includes("중국") ||
+        text.includes("짜장") ||
+        text.includes("짬뽕")
+      ) {
+        return makeRecommendation("중식", menus.chinese);
+      }
+
+      if (
+        text.includes("일식") ||
+        text.includes("일본") ||
+        text.includes("라멘") ||
+        text.includes("초밥") ||
+        text.includes("돈카츠")
+      ) {
+        return makeRecommendation("일식", menus.japanese);
+      }
+
+      if (
+        text.includes("가볍게") ||
+        text.includes("간단") ||
+        text.includes("부담") ||
+        text.includes("소화")
+      ) {
+        return makeRecommendation("가볍게 먹기 좋은", lightMenus);
+      }
+
+      if (
+        text.includes("점심") ||
+        text.includes("뭐먹") ||
+        text.includes("메뉴") ||
+        text.includes("추천") ||
+        text.includes("배고")
+      ) {
+        const allMenus = [
+          ...menus.korean,
+          ...menus.chinese,
+          ...menus.japanese
+        ];
+
+        const picks = getRandomItems(allMenus, 7);
+
+        return `오늘 점심 후보는 이 정도가 좋아 보여요!\n\n` +
+          picks.map((menu, index) => `${index + 1}. ${menu}`).join("\n") +
+          `\n\n한식, 중식, 일식 중 하나를 말하면 더 좁혀서 추천해드릴게요.`;
+      }
+
+      return `음식 추천을 원하시면 이렇게 물어봐 주세요!\n\n` +
+        `예시:\n` +
+        `- 점심 때 뭐 먹지?\n` +
+        `- 한식 추천해줘\n` +
+        `- 중식 먹고 싶어\n` +
+        `- 일식 메뉴 알려줘`;
+    }
+
+    function sendMessage() {
+      const input = userInput.value.trim();
+
+      if (input === "") return;
+
+      addMessage(input, "user");
+      userInput.value = "";
+
+      setTimeout(() => {
+        const response = getBotResponse(input);
+        addMessage(response, "bot");
+      }, 400);
+    }
+
+    function quickAsk(text) {
+      userInput.value = text;
+      sendMessage();
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+
+    userInput.addEventListener("keydown", function(event) {
+      if (event.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
